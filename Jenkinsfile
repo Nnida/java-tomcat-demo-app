@@ -1,7 +1,7 @@
 node{
-      
-      stage('Checkout'){
-         git 'https://github.com/LovesCloud/java-tomcat-demo-app/'
+      def dockerImageName= 'nidatasmiya/javademoapp_$JOB_NAME:$BUILD_NUMBER'
+      stage('SCM Checkout'){
+         git 'https://github.com/Nnida/java-tomcat-demo-app.git'
       }
       stage('Build'){
          // Get maven home path and build
@@ -15,30 +15,30 @@ node{
       }
       
      stage('Build Docker Image'){
-         sh 'docker build -t rajnikhattarrsinha/javademoapp_$JOB_NAME:$BUILD_NUMBER .'
+           sh "docker build -t ${dockerImageName} ."
       }  
    
       stage('Publish Docker Image'){
-         withCredentials([string(credentialsId: 'dockerpwd', variable: 'dockerPWD')]) {
-              sh "docker login -u rajnikhattarrsinha -p ${dockerPWD}"
+         withCredentials([string(credentialsId: 'dockerpwdnidatasmiya', variable: 'dockerPWD')]) {
+              sh "docker login -u nidatasmiya -p ${dockerPWD}"
          }
-        sh 'docker push rajnikhattarrsinha/javademoapp_$JOB_NAME:$BUILD_NUMBER'
+        sh "docker push ${dockerImageName}"
       }
       
-      stage('Run Docker Image'){
+    stage('Run Docker Image'){
             def dockerContainerName = 'javademoapp_$JOB_NAME_$BUILD_NUMBER'
              def changingPermission='sudo chmod +x stopscript.sh'
             def scriptRunner='sudo ./stopscript.sh'           
-            def dockerRun= "sudo docker run -p 8082:8080 -d --name ${dockerContainerName} rajnikhattarrsinha/javademoapp_$JOB_NAME:$BUILD_NUMBER" 
+            def dockerRun= "sudo docker run -p 8082:8080 -d --name ${dockerContainerName} ${dockerImageName}" 
             withCredentials([string(credentialsId: 'deploymentserverpwd', variable: 'dpPWD')]) {
-                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@107.23.253.3" 
-                  sh "sshpass -p ${dpPWD} scp -r stopscript.sh devops@107.23.253.3:/home/devops" 
-                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@107.23.253.3 ${changingPermission}"
-                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@107.23.253.3 ${scriptRunner}"
-                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@107.23.253.3 ${dockerRun}"
+                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@18.206.13.185" 
+                  sh "sshpass -p ${dpPWD} scp -r stopscript.sh devops@18.206.13.185:/home/devops" 
+                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@18.206.13.185 ${changingPermission}"
+                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@18.206.13.185 ${scriptRunner}"
+                  sh "sshpass -p ${dpPWD} ssh -o StrictHostKeyChecking=no devops@18.206.13.185 ${dockerRun}"
             }
       
       }
-          
+         
   }
       
